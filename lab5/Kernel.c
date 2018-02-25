@@ -222,10 +222,10 @@ code Kernel
 		pcb.myThread = currentThread
 		currentThread.myProcess = pcb
 		file = fileManager.Open("TestProgram1")
-		initUserPC = (*file).LoadExecutable(&(pcb.addrSpace))
+		initUserPC = file.LoadExecutable(&(pcb.addrSpace))
 		fileManager.Close(file)
 		initUserStackTop = pcb.addrSpace.numberOfPages * PAGE_SIZE
-		initSystemStackTop = currentThread.systemStack[SYSTEM_STACK_SIZE-1]
+		initSystemStackTop = (&currentThread.systemStack[SYSTEM_STACK_SIZE-1]) asInteger 
 
 		oldIntStat = SetInterruptsTo(DISABLED)
 		pcb.addrSpace.SetToThisPageTable()	
@@ -1704,6 +1704,11 @@ code Kernel
 
   function Handle_Sys_Exit (returnStatus: int)
       -- NOT IMPLEMENTED
+        print("Handle_Sys_Exit invoked!")
+	nl()
+	print("returnStatus = ")
+	printInt(returnStatus)
+	nl()
     endFunction
 
 -----------------------------  Handle_Sys_Shutdown  ---------------------------------
@@ -1716,68 +1721,176 @@ code Kernel
 
   function Handle_Sys_Yield ()
       -- NOT IMPLEMENTED
+	print("Handle_Sys_Yield invoked!")
     endFunction
 
 -----------------------------  Handle_Sys_Fork  ---------------------------------
 
   function Handle_Sys_Fork () returns int
       -- NOT IMPLEMENTED
-      return 0
+	print("Handle_Sys_Fork invoked!")
+    	return 1000
     endFunction
 
 -----------------------------  Handle_Sys_Join  ---------------------------------
 
   function Handle_Sys_Join (processID: int) returns int
       -- NOT IMPLEMENTED
-      return 0
+	print("Handle_Sys_Join invoked!")
+	nl()
+	print("processID = ")
+	printInt(processID)
+	nl()
+    	return 2000
     endFunction
 
 -----------------------------  Handle_Sys_Exec  ---------------------------------
 
   function Handle_Sys_Exec (filename: ptr to array of char) returns int
-      -- NOT IMPLEMENTED
-      return 0
+	var
+		newAddrSpace: AddrSpace
+		file: ptr to OpenFile
+		tmp: int
+		strBuffer: array [MAX_STRING_SIZE] of char
+		initUserPC: int
+		initUserStackTop: int
+		initSystemStackTop: int
+	tmp = SetInterruptsTo(DISABLED)
+	tmp = (*currentThread).myProcess.addrSpace.GetStringFromVirtual(&strBuffer, filename asInteger, MAX_STRING_SIZE)
+	if tmp < 0 return -1
+	endIf
+	newAddrSpace = new AddrSpace
+	newAddrSpace.Init()
+        --file = fileManager.Open(tmp)
+	file = fileManager.Open(&strBuffer)
+	if file == null return -1
+	endIf
+
+        initUserPC = file.LoadExecutable(&newAddrSpace)
+	if initUserPC < 0 return -1 --error
+	endIf
+
+        currentThread.myProcess.addrSpace = newAddrSpace
+	frameManager.ReturnAllFrames(&((*currentThread).myProcess.addrSpace)) --free memory in old addr space
+        fileManager.Close(file)
+
+        initUserStackTop = newAddrSpace.numberOfPages * PAGE_SIZE
+        initSystemStackTop = (&currentThread.systemStack[SYSTEM_STACK_SIZE-1]) asInteger
+
+        newAddrSpace.SetToThisPageTable()
+        currentThread.isUserThread = true
+        BecomeUserThread(initUserStackTop, initUserPC, initSystemStackTop)
+
+    	return 3000
     endFunction
 
 -----------------------------  Handle_Sys_Create  ---------------------------------
 
   function Handle_Sys_Create (filename: ptr to array of char) returns int
       -- NOT IMPLEMENTED
-      return 0
+	var
+		tmp: int
+                strBuffer: array [MAX_STRING_SIZE] of char
+	print("Handle_Sys_Create invoked!")
+    	tmp = (*currentThread).myProcess.addrSpace.GetStringFromVirtual(&strBuffer, filename asInteger, MAX_STRING_SIZE)
+        if tmp < 0 return -1
+        endIf
+	nl()
+	print("virt addr of filename = ")
+	printHex(filename asInteger)
+	nl()
+	print("filename = ")
+	print(&strBuffer)
+	nl()
+	return 4000
     endFunction
 
 -----------------------------  Handle_Sys_Open  ---------------------------------
 
   function Handle_Sys_Open (filename: ptr to array of char) returns int
       -- NOT IMPLEMENTED
-      return 0
+        var
+                tmp: int
+                strBuffer: array [MAX_STRING_SIZE] of char
+        print("Handle_Sys_Create invoked!")
+        tmp = (*currentThread).myProcess.addrSpace.GetStringFromVirtual(&strBuffer, filename asInteger, MAX_STRING_SIZE)
+        if tmp < 0 return -1
+        endIf
+        nl()
+        print("virt addr of filename = ")
+        printHex(filename asInteger)
+        nl()
+        print("filename = ")
+        print(&strBuffer)
+        nl()
+
+     	return 5000
     endFunction
 
 -----------------------------  Handle_Sys_Read  ---------------------------------
 
   function Handle_Sys_Read (fileDesc: int, buffer: ptr to char, sizeInBytes: int) returns int
       -- NOT IMPLEMENTED
-      return 0
+        print("Handle_Sys_Read invoked!")
+	nl()
+	print("fileDesc = ")
+	printInt(fileDesc)
+	nl()
+	print("virt addr of buffer = ")
+	printHex(buffer asInteger)
+	nl()
+	print("sizeInBytes = ")
+	printInt(sizeInBytes)
+	nl()
+
+    	return 6000
     endFunction
 
 -----------------------------  Handle_Sys_Write  ---------------------------------
 
   function Handle_Sys_Write (fileDesc: int, buffer: ptr to char, sizeInBytes: int) returns int
       -- NOT IMPLEMENTED
-      return 0
+        print("Handle_Sys_Write invoked!")
+	nl()
+        print("fileDesc = ")
+        printInt(fileDesc)
+        nl()
+        print("virt addr of buffer = ")
+        printHex(buffer asInteger)
+        nl()
+        print("sizeInBytes = ")
+        printInt(sizeInBytes)
+        nl()
+
+	return 7000
     endFunction
 
 -----------------------------  Handle_Sys_Seek  ---------------------------------
 
   function Handle_Sys_Seek (fileDesc: int, newCurrentPos: int) returns int
       -- NOT IMPLEMENTED
-      return 0
+        print("Handle_Sys_Seek invoked!")
+	nl()
+        print("fileDesc = ")
+        printInt(fileDesc)
+        nl()
+        print("newCurrentPos = ")
+        printInt(newCurrentPos)
+        nl()
+
+    	return 8000
     endFunction
 
 -----------------------------  Handle_Sys_Close  ---------------------------------
 
   function Handle_Sys_Close (fileDesc: int)
       -- NOT IMPLEMENTED
+        print("Handle_Sys_Close invoked!")
+	nl()
+        print("fileDesc = ")
+        printInt(fileDesc)
+        nl()
+
     endFunction
 
 -----------------------------  DiskDriver  ---------------------------------

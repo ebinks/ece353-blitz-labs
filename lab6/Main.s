@@ -251,9 +251,9 @@ _Label_5:
 	.import	_CheckVersion_P_List_
 	cmp	r1,0
 	bne	_Label_6
-! Make sure _P_Kernel_ has hash value 0xee87aa28 (decimal -293098968)
+! Make sure _P_Kernel_ has hash value 0xe0ab8cc5 (decimal -525628219)
 	set	_packageName,r2
-	set	0xee87aa28,r3
+	set	0xe0ab8cc5,r3
 	call	_CheckVersion_P_Kernel_
 	.import	_CheckVersion_P_Kernel_
 	cmp	r1,0
@@ -305,9 +305,9 @@ _Label_93:
 	mov	16,r13		! source line 16
 	mov	"\0\0AS",r10
 !   NEW CLASS Constructor...
-!   ZeroMemory: _P_Kernel_processManager = zeros  (sizeInBytes=1316)
+!   ZeroMemory: _P_Kernel_processManager = zeros  (sizeInBytes=1440)
 	set	_P_Kernel_processManager,r4
-	mov	329,r3
+	mov	360,r3
 _Label_94:
 	store	r0,[r4]
 	add	r4,4,r4
@@ -335,9 +335,9 @@ _Label_94:
 	mov	20,r13		! source line 20
 	mov	"\0\0AS",r10
 !   NEW CLASS Constructor...
-!   ZeroMemory: _P_Kernel_threadManager = zeros  (sizeInBytes=41696)
+!   ZeroMemory: _P_Kernel_threadManager = zeros  (sizeInBytes=45860)
 	set	_P_Kernel_threadManager,r4
-	mov	10424,r3
+	mov	11465,r3
 _Label_95:
 	store	r0,[r4]
 	add	r4,4,r4

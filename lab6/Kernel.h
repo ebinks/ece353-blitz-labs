@@ -16,7 +16,7 @@ header Kernel
     NUMBER_OF_PHYSICAL_PAGE_FRAMES = 512              -- in hex: 0x0000 0200
     --NUMBER_OF_PHYSICAL_PAGE_FRAMES = 100               -- for testing only
 
-    MAX_NUMBER_OF_PROCESSES = 10
+    MAX_NUMBER_OF_PROCESSES = 11
     MAX_STRING_SIZE = 20
     MAX_PAGES_PER_VIRT_SPACE = 20
     MAX_FILES_PER_PROCESS = 10
@@ -244,8 +244,8 @@ header Kernel
       PrintShort ()
       GetANewProcess () returns ptr to ProcessControlBlock
       FreeProcess (p: ptr to ProcessControlBlock)
-      --TurnIntoZombie (p: ptr to ProcessControlBlock)
-      --WaitForZombie (proc: ptr to ProcessControlBlock) returns int
+      TurnIntoZombie (p: ptr to ProcessControlBlock)
+      WaitForZombie (proc: ptr to ProcessControlBlock) returns int
   endClass
 
   -----------------------------  FrameManager  ---------------------------------

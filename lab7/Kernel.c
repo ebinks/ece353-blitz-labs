@@ -1054,14 +1054,27 @@ code Kernel
     -- current thread.
     --
 	var
-		oldIntStat: int
+		oldIntStat, i: int
 	currentThread.myProcess.exitStatus = exitStatus
 	oldIntStat = SetInterruptsTo(DISABLED)
-	currentThread.myProcess.myThread = null
+	-- close open files in the process
 	currentThread.isUserThread = false
+        oldIntStat = SetInterruptsTo(oldIntStat)
+        frameManager.ReturnAllFrames(&(currentThread.myProcess.addrSpace))
+        processManager.TurnIntoZombie(currentThread.myProcess)
+
+	for i = 0 to MAX_NUMBER_OF_PROCESSES-2
+		if currentThread.myProcess.fileDescriptor[i] != null
+			fileManager.Close(currentThread.myProcess.fileDescriptor[i])
+			currentThread.myProcess.fileDescriptor[i] = null
+		endIf
+	endFor
+	currentThread.myProcess.myThread = null
+	/*currentThread.isUserThread = false
 	oldIntStat = SetInterruptsTo(oldIntStat)
 	frameManager.ReturnAllFrames(&(currentThread.myProcess.addrSpace))
 	processManager.TurnIntoZombie(currentThread.myProcess)
+	*/
         currentThread.myProcess = null
 	ThreadFinish()
     endFunction

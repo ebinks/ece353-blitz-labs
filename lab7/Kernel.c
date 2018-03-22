@@ -2021,85 +2021,85 @@ code Kernel
 -----------------------------  Handle_Sys_Write  ---------------------------------
 
   function Handle_Sys_Write (fileDesc: int, buffer: ptr to char, sizeInBytes: int) returns int
-		var
-			virtAddr, virtPage, offset, copiedSoFar, nextPosInFile: int
-			currentChunkSize: int
-			fileSize: int
-			destAddr: int
-			openFile: ptr to OpenFile
-			readSuccess: bool
+	var
+		virtPage, offset, chunkSize, nextPosInFile, copiedSoFar: int
+		virtAddr, fileSize, destAddr: int
+		openFile: ptr to OpenFile
+		read: bool
+	if fileDesc < 0 || fileDesc >= MAX_FILES_PER_PROCESS || currentThread.myProcess.fileDescriptor[fileDesc] == null || sizeInBytes < 0
+		return -1
+	endIf
+	openFile = currentThread.myProcess.fileDescriptor[fileDesc]
+	virtAddr = buffer asInteger
+	virtPage = virtAddr / PAGE_SIZE
+	offset = virtAddr % PAGE_SIZE
+	copiedSoFar = 0
+	nextPosInFile = openFile.currentPos
+	fileSize = openFile.fcb.sizeOfFileInBytes
 
-		if fileDesc < 0 || fileDesc > MAX_FILES_PER_PROCESS-1 || currentThread.myProcess.fileDescriptor[fileDesc] == null || sizeInBytes < 0
-			return -1		
+	while true
+		chunkSize = PAGE_SIZE - offset
+		if nextPosInFile + chunkSize > fileSize
+			chunkSize = fileSize - nextPosInFile
+		endIf
+		if copiedSoFar + chunkSize > sizeInBytes
+			chunkSize = sizeInBytes - copiedSoFar
+		endIf
+		if chunkSize <= 0
+			break
+		endIf 
+		
+		if virtPage < 0 || virtPage > currentThread.myProcess.addrSpace.numberOfPages - 1 || !currentThread.myProcess.addrSpace.IsWritable(virtPage) || !currentThread.myProcess.addrSpace.IsValid(virtPage)
+			return -1  
 		endIf
 
-		openFile = currentThread.myProcess.fileDescriptor[fileDesc]
-		virtAddr = buffer asInteger
-		virtPage = virtAddr / PAGE_SIZE
-		offset = virtAddr % PAGE_SIZE
-		copiedSoFar = 0
-		nextPosInFile = openFile.currentPos
-		fileSize = openFile.fcb.sizeOfFileInBytes
-		while true
-			currentChunkSize = PAGE_SIZE - offset
-			if nextPosInFile + currentChunkSize > fileSize
-				currentChunkSize = fileSize - nextPosInFile
-			endIf			
-			if copiedSoFar + currentChunkSize > sizeInBytes
-				currentChunkSize = sizeInBytes - copiedSoFar
-			endIf
-			if currentChunkSize <= 0
-				break
-			endIf
-			if virtPage < 0 || virtPage > currentThread.myProcess.addrSpace.numberOfPages-1 || !currentThread.myProcess.addrSpace.IsValid(virtPage) || !currentThread.myProcess.addrSpace.IsWritable(virtPage)
-				return -1 			
-			endIf
-			nextPosInFile = nextPosInFile + currentChunkSize
-			copiedSoFar = copiedSoFar + currentChunkSize
-			virtPage = virtPage+1
-			offset = 0
-			if copiedSoFar == sizeInBytes
-				break
-			endIf		
-		endWhile
+		nextPosInFile = nextPosInFile + chunkSize
+		copiedSoFar = copiedSoFar + chunkSize
+		virtPage = virtPage + 1
+		offset = 0
+		if copiedSoFar == sizeInBytes
+			break
+		endIf
 
-		openFile = currentThread.myProcess.fileDescriptor[fileDesc]
-		virtAddr = buffer asInteger
-		virtPage = virtAddr / PAGE_SIZE
-		offset = virtAddr % PAGE_SIZE
-		copiedSoFar = 0
-		nextPosInFile = openFile.currentPos
-		fileSize = openFile.fcb.sizeOfFileInBytes
+	endWhile
+
+	openFile = currentThread.myProcess.fileDescriptor[fileDesc]
+	virtAddr = buffer asInteger
+	virtPage = virtAddr / PAGE_SIZE
+	offset = virtAddr % PAGE_SIZE
+	copiedSoFar = 0
+	nextPosInFile = openFile.currentPos
+	fileSize = openFile.fcb.sizeOfFileInBytes
 
 		while true
-			currentChunkSize = PAGE_SIZE - offset
-			if nextPosInFile + currentChunkSize > fileSize
-				currentChunkSize = fileSize - nextPosInFile
-			endIf			
-			if copiedSoFar + currentChunkSize > sizeInBytes
-				currentChunkSize = sizeInBytes - copiedSoFar
+			chunkSize = PAGE_SIZE - offset
+			if nextPosInFile + chunkSize > fileSize
+				chunkSize = fileSize - nextPosInFile
 			endIf
-			if currentChunkSize <= 0
+			if copiedSoFar + chunkSize > sizeInBytes
+				chunkSize = sizeInBytes - copiedSoFar
+			endIf
+			if chunkSize <= 0
 				break
 			endIf
-			if virtPage < 0 || virtPage > currentThread.myProcess.addrSpace.numberOfPages-1 || !currentThread.myProcess.addrSpace.IsValid(virtPage) || !currentThread.myProcess.addrSpace.IsWritable(virtPage)
-				return -1 -- error			
-			endIf
+			if virtPage < 0 || virtPage > currentThread.myProcess.addrSpace.numberOfPages - 1 || !currentThread.myProcess.addrSpace.IsWritable(virtPage) || !currentThread.myProcess.addrSpace.IsValid(virtPage)
+        	                return -1
+	                endIf
 			currentThread.myProcess.addrSpace.SetReferenced(virtPage)
+			currentThread.myProcess.addrSpace.SetDirty(virtPage)
 			destAddr = currentThread.myProcess.addrSpace.ExtractFrameAddr(virtPage) + offset
-			readSuccess = fileManager.SynchWrite(openFile, destAddr, nextPosInFile, currentChunkSize)
-			nextPosInFile = nextPosInFile + currentChunkSize
-			copiedSoFar = copiedSoFar + currentChunkSize
-			virtPage = virtPage+1
+			read = fileManager.SynchRead(openFile, destAddr, nextPosInFile, chunkSize)
+			nextPosInFile = nextPosInFile + chunkSize
+			copiedSoFar = copiedSoFar + chunkSize
+			virtPage = virtPage + 1
 			offset = 0
 			if copiedSoFar == sizeInBytes
 				break
-			endIf		
+			endIf
 		endWhile
-
-		openFile.currentPos = nextPosInFile
-
-      return copiedSoFar
+	
+	openFile.currentPos = nextPosInFile
+    	return copiedSoFar
     endFunction
 
 -----------------------------  Handle_Sys_Seek  ---------------------------------

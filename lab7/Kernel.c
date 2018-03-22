@@ -1800,6 +1800,15 @@ code Kernel
 
 	SaveUserRegs(&(th.userRegs[0]))
 	oldIntStat = SetInterruptsTo(ENABLED)
+	
+	-- fork modified to open files in parent
+	for i = 0 to MAX_FILES_PER_PROCESS-1
+		if currentThread.myProcess.fileDescriptor[i] != null
+			currentThread.myProcess.fileDescriptor[i].numberOfUsers = currentThread.myProcess.fileDescriptor[i].numberOfUsers + 1
+			th.myProcess.fileDescriptor[i] = currentThread.myProcess.fileDescriptor[i]
+		endIf
+	endFor
+
 	th.stackTop = & (th.systemStack[SYSTEM_STACK_SIZE-1])
 
 	frameManager.GetNewFrames(&(pcb.addrSpace), currentThread.myProcess.addrSpace.numberOfPages)
@@ -1942,7 +1951,7 @@ code Kernel
 		virtAddr, fileSize, destAddr: int
 		openFile: ptr to OpenFile
 		read: bool
-	if fileDesc < 0 || fileDesc >= MAX_FILES_PER_PROCESS || currentThread.myProcess.fileDescriptor[fileDesc] == null || sizeInBytes < 0
+	if fileDesc < 0 || fileDesc > MAX_FILES_PER_PROCESS-1 || currentThread.myProcess.fileDescriptor[fileDesc] == null || sizeInBytes < 0
 		return -1
 	endIf
 	openFile = currentThread.myProcess.fileDescriptor[fileDesc]
@@ -2026,7 +2035,7 @@ code Kernel
 		virtAddr, fileSize, destAddr: int
 		openFile: ptr to OpenFile
 		read: bool
-	if fileDesc < 0 || fileDesc >= MAX_FILES_PER_PROCESS || currentThread.myProcess.fileDescriptor[fileDesc] == null || sizeInBytes < 0
+	if fileDesc < 0 || fileDesc > MAX_FILES_PER_PROCESS-1 || currentThread.myProcess.fileDescriptor[fileDesc] == null || sizeInBytes < 0
 		return -1
 	endIf
 	openFile = currentThread.myProcess.fileDescriptor[fileDesc]
@@ -2088,7 +2097,7 @@ code Kernel
 			currentThread.myProcess.addrSpace.SetReferenced(virtPage)
 			currentThread.myProcess.addrSpace.SetDirty(virtPage)
 			destAddr = currentThread.myProcess.addrSpace.ExtractFrameAddr(virtPage) + offset
-			read = fileManager.SynchRead(openFile, destAddr, nextPosInFile, chunkSize)
+			read = fileManager.SynchWrite(openFile, destAddr, nextPosInFile, chunkSize)
 			nextPosInFile = nextPosInFile + chunkSize
 			copiedSoFar = copiedSoFar + chunkSize
 			virtPage = virtPage + 1
